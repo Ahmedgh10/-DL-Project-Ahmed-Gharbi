@@ -1,9 +1,10 @@
 from pathlib import Path
+import json
 import math
 import random
 
-import cv2
 import numpy as np
+from PIL import Image
 import streamlit as st
 import torch
 import torch.nn as nn
@@ -13,7 +14,10 @@ import torch.nn.functional as F
 ROOT = Path(__file__).parent
 HR_DIR = ROOT / "dataset" / "HR"
 LR_DIR = ROOT / "dataset" / "LR"
-DEFAULT_CHECKPOINT = ROOT / "checkpoints" / "medium_best.pt"
+LOCAL_CHECKPOINT = ROOT / "checkpoints" / "medium_best.pt"
+DEPLOY_CHECKPOINT = ROOT / "app_assets" / "checkpoints" / "medium_best.pt"
+SAMPLE_DIR = ROOT / "app_assets" / "samples"
+DEFAULT_CHECKPOINT = LOCAL_CHECKPOINT if LOCAL_CHECKPOINT.exists() else DEPLOY_CHECKPOINT
 SCALE = 2
 
 
@@ -54,10 +58,7 @@ def psnr(pred, target, eps=1e-8):
 
 
 def read_rgb(path):
-    image = cv2.imread(str(path), cv2.IMREAD_COLOR)
-    if image is None:
-        raise FileNotFoundError(path)
-    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return np.array(Image.open(path).convert("RGB"))
 
 
 def to_tensor(image):
@@ -74,6 +75,14 @@ def aligned_frames():
     hr_names = {p.name for p in HR_DIR.glob("*.png")}
     lr_names = {p.name for p in LR_DIR.glob("*.png")}
     return sorted(hr_names & lr_names)
+
+
+@st.cache_data(show_spinner=False)
+def bundled_samples():
+    manifest_path = SAMPLE_DIR / "manifest.json"
+    if not manifest_path.exists():
+        return []
+    return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
 @st.cache_resource(show_spinner=True)
@@ -116,6 +125,18 @@ def make_patch(frame_idx, lr_patch_size, seed):
     }
 
 
+def make_bundled_sample(sample_meta):
+    sample_path = SAMPLE_DIR / sample_meta["id"]
+    return {
+        "frame": sample_meta["current_frame"],
+        "previous": sample_meta["previous_frame"],
+        "lr": to_tensor(read_rgb(sample_path / "lr.png")),
+        "hr_prev": to_tensor(read_rgb(sample_path / "hr_prev.png")),
+        "hr": to_tensor(read_rgb(sample_path / "hr.png")),
+        "crop": tuple(sample_meta["crop"]),
+    }
+
+
 def run_inference(model, sample, device):
     lr = sample["lr"][None].to(device)
     hr_prev = sample["hr_prev"][None].to(device)
@@ -131,17 +152,16 @@ st.set_page_config(page_title="Mini-DLSS Demo", layout="wide")
 st.title("Mini-DLSS: Spatial-Temporal Upscaling Demo")
 st.caption("Patch-level inference using the trained temporal CNN checkpoint.")
 
-if not HR_DIR.exists() or not LR_DIR.exists():
-    st.error("Dataset folders were not found. Expected dataset/HR and dataset/LR.")
-    st.stop()
+has_full_dataset = HR_DIR.exists() and LR_DIR.exists() and len(aligned_frames()) >= 2
+sample_manifest = bundled_samples()
+has_bundled_samples = len(sample_manifest) > 0
 
 if not DEFAULT_CHECKPOINT.exists():
-    st.error("Trained checkpoint not found. Expected checkpoints/medium_best.pt.")
+    st.error("Trained checkpoint not found. Expected checkpoints/medium_best.pt or app_assets/checkpoints/medium_best.pt.")
     st.stop()
 
-frames = aligned_frames()
-if len(frames) < 2:
-    st.error("Not enough aligned HR/LR frames found.")
+if not has_full_dataset and not has_bundled_samples:
+    st.error("No demo data found. Add dataset/HR + dataset/LR locally, or app_assets/samples for deployment.")
     st.stop()
 
 cuda_available = torch.cuda.is_available()
@@ -150,18 +170,34 @@ device_name = "cuda" if cuda_available else "cpu"
 with st.sidebar:
     st.header("Demo Controls")
     st.write(f"Device: `{device_name}`")
+    mode_options = []
+    if has_bundled_samples:
+        mode_options.append("Bundled demo samples")
+    if has_full_dataset:
+        mode_options.append("Full local dataset")
+    data_mode = st.radio("Data source", mode_options, index=0)
     checkpoint_path = st.text_input("Checkpoint", str(DEFAULT_CHECKPOINT))
-    lr_patch_size = st.select_slider("LR patch size", options=[48, 64, 80, 96], value=64)
-    frame_idx = st.slider("Frame index", 1, len(frames) - 1, min(429, len(frames) - 1))
-    seed = st.number_input("Crop seed", min_value=0, max_value=99999, value=123, step=1)
-    if st.button("Random crop"):
-        seed = random.randint(0, 99999)
-        st.session_state["seed_override"] = seed
-    if "seed_override" in st.session_state:
-        seed = st.session_state["seed_override"]
+    if data_mode == "Full local dataset":
+        frames = aligned_frames()
+        lr_patch_size = st.select_slider("LR patch size", options=[48, 64, 80, 96], value=64)
+        frame_idx = st.slider("Frame index", 1, len(frames) - 1, min(429, len(frames) - 1))
+        seed = st.number_input("Crop seed", min_value=0, max_value=99999, value=123, step=1)
+        if st.button("Random crop"):
+            seed = random.randint(0, 99999)
+            st.session_state["seed_override"] = seed
+        if "seed_override" in st.session_state:
+            seed = st.session_state["seed_override"]
+    else:
+        labels = [f"{i + 1}. {m['current_frame']}" for i, m in enumerate(sample_manifest)]
+        sample_label = st.selectbox("Sample", labels)
+        sample_index = labels.index(sample_label)
+        lr_patch_size = 64
 
 model, checkpoint = load_model(checkpoint_path, device_name)
-sample = make_patch(frame_idx, lr_patch_size, int(seed))
+if data_mode == "Full local dataset":
+    sample = make_patch(frame_idx, lr_patch_size, int(seed))
+else:
+    sample = make_bundled_sample(sample_manifest[sample_index])
 pred, bicubic, target = run_inference(model, sample, torch.device(device_name))
 error = (pred - target).abs().mean(0, keepdim=True).repeat(3, 1, 1)
 

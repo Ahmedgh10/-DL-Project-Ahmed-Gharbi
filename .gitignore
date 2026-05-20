@@ -1,7 +1,7 @@
 # Large/generated project data
-dataset/
-checkpoints/
-results/
+/dataset/
+/checkpoints/
+/results/
 *.mp4
 
 # Training outputs
@@ -11,6 +11,13 @@ results/
 *.log
 *_executed.ipynb
 train_mini_dlss_smoke_executed.ipynb
+
+# Small deploy assets are intentionally tracked for Streamlit Cloud
+!app_assets/
+!app_assets/checkpoints/
+!app_assets/checkpoints/medium_best.pt
+!app_assets/samples/
+!app_assets/samples/**
 
 # Python/Jupyter cache
 __pycache__/

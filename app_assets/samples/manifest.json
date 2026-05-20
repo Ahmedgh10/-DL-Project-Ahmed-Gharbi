@@ -1,0 +1,68 @@
+[
+  {
+    "id": "sample_01_frame_00429",
+    "current_frame": "frame_00429.png",
+    "previous_frame": "frame_00428.png",
+    "crop": [
+      53,
+      137,
+      64,
+      64
+    ]
+  },
+  {
+    "id": "sample_02_frame_00715",
+    "current_frame": "frame_00715.png",
+    "previous_frame": "frame_00714.png",
+    "crop": [
+      89,
+      393,
+      64,
+      64
+    ]
+  },
+  {
+    "id": "sample_03_frame_00883",
+    "current_frame": "frame_00883.png",
+    "previous_frame": "frame_00882.png",
+    "crop": [
+      417,
+      136,
+      64,
+      64
+    ]
+  },
+  {
+    "id": "sample_04_frame_02184",
+    "current_frame": "frame_02184.png",
+    "previous_frame": "frame_02183.png",
+    "crop": [
+      110,
+      429,
+      64,
+      64
+    ]
+  },
+  {
+    "id": "sample_05_frame_02193",
+    "current_frame": "frame_02193.png",
+    "previous_frame": "frame_02192.png",
+    "crop": [
+      895,
+      19,
+      64,
+      64
+    ]
+  },
+  {
+    "id": "sample_06_frame_03337",
+    "current_frame": "frame_03337.png",
+    "previous_frame": "frame_03336.png",
+    "crop": [
+      388,
+      274,
+      64,
+      64
+    ]
+  }
+]

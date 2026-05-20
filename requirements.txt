@@ -1,8 +1,9 @@
 numpy
-opencv-python
+opencv-python-headless
 matplotlib
 jupyter
 ipykernel
 torch
 torchvision
 streamlit
+pillow
