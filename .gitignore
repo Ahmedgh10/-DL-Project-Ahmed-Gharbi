@@ -1,4 +1,4 @@
-# Large/generated data
+# Large/generated project data
 dataset/
 checkpoints/
 *.mp4
@@ -14,9 +14,29 @@ train_mini_dlss_smoke_executed.ipynb
 # Python/Jupyter cache
 __pycache__/
 *.py[cod]
+*.py[codz]
+*$py.class
 .ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Local environments
+# Build/distribution artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Local environments and secrets
+.env
+.envrc
 .venv/
 venv/
 env/
+ENV/
+
+# Editor/runtime clutter
+.vscode/
+.idea/
+tempCodeRunnerFile.py
