@@ -3,6 +3,7 @@
 /checkpoints/
 /results/
 *.mp4
+dl project specs.md
 
 # Training outputs
 *.pt
