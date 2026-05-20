@@ -1,0 +1,22 @@
+# Large/generated data
+dataset/
+checkpoints/
+*.mp4
+
+# Training outputs
+*.pt
+*.pth
+*.ckpt
+*.log
+*_executed.ipynb
+train_mini_dlss_smoke_executed.ipynb
+
+# Python/Jupyter cache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Local environments
+.venv/
+venv/
+env/
