@@ -1,6 +1,7 @@
 # Large/generated project data
 dataset/
 checkpoints/
+results/
 *.mp4
 
 # Training outputs
